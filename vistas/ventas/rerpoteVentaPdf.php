@@ -4,21 +4,24 @@
 
 	$objv= new ventas();
 
-
 	$c=new conectar();
 	$conexion= $c->conexion();	
-	$idventa=$_GET['idventa'];
+	
+	if(!isset($idventa)) {
+		$idventa=$_GET['idventa'];
+	}
 
  $sql="SELECT ve.id_venta,
 		ve.fechaCompra,
 		ve.id_cliente,
 		art.nombre,
-        art.precio,
-        art.descripcion
+        ve.precio,
+        art.descripcion,
+        ve.cantidad
 	from ventas  as ve 
 	inner join articulos as art
 	on ve.id_producto=art.id_producto
-	and ve.id_venta='$idventa'";
+	where ve.id_venta='$idventa'";
 
 $result=mysqli_query($conexion,$sql);
 
@@ -34,61 +37,62 @@ $result=mysqli_query($conexion,$sql);
  <html>
  <head>
  	<title>Reporte de venta</title>
- 	<link rel="stylesheet" type="text/css" href="../../librerias/bootstrap/css/bootstrap.css">
+ 	<style>
+ 		body { font-family: Arial, sans-serif; }
+ 		table { width: 100%; border-collapse: collapse; }
+ 		td, th { padding: 8px; border: 1px solid #ddd; }
+ 	</style>
  </head>
  <body>
- 		<img src="../../img/ventas.jpg" width="200" height="200">
- 		<br>
- 		<table class="table">
+ 		<h2>Reporte de Venta</h2>
+ 		<table>
  			<tr>
- 				<td>Fecha: <?php echo $fecha; ?></td>
+ 				<td><strong>Fecha:</strong> <?php echo $fecha; ?></td>
  			</tr>
  			<tr>
- 				<td>Folio: <?php echo $folio ?></td>
+ 				<td><strong>Folio:</strong> <?php echo $folio ?></td>
  			</tr>
  			<tr>
- 				<td>cliente: <?php echo $objv->nombreCliente($idcliente); ?></td>
+ 				<td><strong>Cliente:</strong> <?php echo $objv->nombreCliente($idcliente); ?></td>
  			</tr>
  		</table>
 
+ 		<br>
 
- 		<table class="table">
+ 		<table>
  			<tr>
- 				<td>nombre producto</td>
- 				<td>Precio</td>
- 				<td>Cantidad</td>
- 				<td>Descripcion</td>
+ 				<th>Producto</th>
+ 				<th>Precio Unitario</th>
+ 				<th>Cantidad</th>
+ 				<th>Subtotal</th>
+ 				<th>Descripción</th>
  			</tr>
 
  			<?php 
- 			$sql="SELECT ve.id_venta,
-						ve.fechaCompra,
-						ve.id_cliente,
-						art.nombre,
-				        art.precio,
-				        art.descripcion
-					from ventas  as ve 
-					inner join articulos as art
-					on ve.id_producto=art.id_producto
-					and ve.id_venta='$idventa'";
-
-			$result=mysqli_query($conexion,$sql);
+ 			$result=mysqli_query($conexion,$sql);
 			$total=0;
 			while($mostrar=mysqli_fetch_row($result)):
+				// CORREGIDO: Calcular precio unitario dividiendo precio total entre cantidad
+				$precioTotal = $mostrar[4]; // Este es el precio total almacenado
+				$cantidad = $mostrar[6];
+				$precioUnitario = $precioTotal / $cantidad; // Calcular precio unitario
  			 ?>
 
  			<tr>
- 				<td><?php echo $ver[3]; ?></td>
- 				<td><?php echo $ver[4]; ?></td>
- 				<td>1</td>
- 				<td><?php echo $ver[5]; ?></td>
+ 				<td><?php echo $mostrar[3]; ?></td>
+ 				<td>$<?php echo number_format($precioUnitario, 2); ?></td>
+ 				<td><?php echo $cantidad; ?></td>
+ 				<td>$<?php echo number_format($precioTotal, 2); ?></td>
+ 				<td><?php echo $mostrar[5]; ?></td>
  			</tr>
  			<?php 
- 				$total=$total + $ver[4];
+ 				$total = $total + $precioTotal;
  			endwhile;
  			 ?>
  			 <tr>
- 			 	<td>Total=  <?php echo "$".$total; ?></td>
+ 			 	<td colspan="3"><strong>TOTAL</strong></td>
+ 			 	<td><strong>$<?php echo number_format($total, 2); ?></strong></td>
+ 			 	<td></td>
  			 </tr>
  		</table>
  </body>

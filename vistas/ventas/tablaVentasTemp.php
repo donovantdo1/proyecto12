@@ -33,7 +33,7 @@
  		<td><?php echo $d[1] ?></td>
  		<td><?php echo $d[2] ?></td>
  		<td><?php echo $d[3] ?></td>
- 		<td><?php echo 1; ?></td>
+ 		<td><?php echo $d[6]; ?></td>
  		<td>
  			<span class="btn btn-danger btn-xs" onclick="quitarP('<?php echo $i; ?>')">
  				<span class="glyphicon glyphicon-remove"></span>

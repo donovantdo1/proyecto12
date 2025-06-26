@@ -9,7 +9,7 @@
 	$idproducto=$_POST['productoVenta'];
 	$descripcion=$_POST['descripcionV'];
 	$cantidad=$_POST['cantidadV'];
-	$precio=$_POST['precioV'];
+	$precioTotal=$_POST['precioV']; // Este ya viene calculado desde el frontend
 
 	$sql="SELECT nombre,apellido 
 			from clientes 
@@ -27,13 +27,59 @@
 
 	$nombreproducto=mysqli_fetch_row($result)[0];
 
-	$articulo=$idproducto."||".
-				$nombreproducto."||".
-				$descripcion."||".
-				$precio."||".
-				$ncliente."||".
-				$idcliente;
+	// NUEVO: Verificar si el producto ya existe en la tabla temporal
+	$productoExiste = false;
+	$indiceExistente = -1;
 
-	$_SESSION['tablaComprasTemp'][]=$articulo;
+	if(isset($_SESSION['tablaComprasTemp'])) {
+		for($i = 0; $i < count($_SESSION['tablaComprasTemp']); $i++) {
+			$datosExistentes = explode("||", $_SESSION['tablaComprasTemp'][$i]);
+			
+			// Verificar si es el mismo producto y mismo cliente
+			if($datosExistentes[0] == $idproducto && $datosExistentes[5] == $idcliente) {
+				$productoExiste = true;
+				$indiceExistente = $i;
+				break;
+			}
+		}
+	}
+
+	if($productoExiste) {
+		// ACTUALIZAR: Sumar cantidad y recalcular precio
+		$datosExistentes = explode("||", $_SESSION['tablaComprasTemp'][$indiceExistente]);
+		
+		$cantidadAnterior = $datosExistentes[6];
+		$nuevaCantidad = $cantidadAnterior + $cantidad;
+		
+		// Obtener precio unitario
+		$sqlPrecio = "SELECT precio FROM articulos WHERE id_producto='$idproducto'";
+		$resultPrecio = mysqli_query($conexion, $sqlPrecio);
+		$precioUnitario = mysqli_fetch_row($resultPrecio)[0];
+		
+		$nuevoPrecioTotal = $precioUnitario * $nuevaCantidad;
+		
+		// Actualizar el artículo existente
+		$articuloActualizado = $idproducto."||".
+		                      $nombreproducto."||".
+		                      $descripcion."||".
+		                      $nuevoPrecioTotal."||".
+		                      $ncliente."||".
+		                      $idcliente."||".
+		                      $nuevaCantidad;
+		
+		$_SESSION['tablaComprasTemp'][$indiceExistente] = $articuloActualizado;
+		
+	} else {
+		// AGREGAR: Nuevo producto
+		$articulo=$idproducto."||".
+		          $nombreproducto."||".
+		          $descripcion."||".
+		          $precioTotal."||".
+		          $ncliente."||".
+		          $idcliente."||".
+		          $cantidad;
+		          
+		$_SESSION['tablaComprasTemp'][]=$articulo;
+	}
 
  ?>

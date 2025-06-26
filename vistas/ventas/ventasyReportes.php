@@ -11,7 +11,7 @@
 	$sql="SELECT id_venta,
 				fechaCompra,
 				id_cliente 
-			from ventas group by id_venta";
+			from ventas group by id_venta, fechaCompra, id_cliente";
 	$result=mysqli_query($conexion,$sql); 
 	?>
 
@@ -29,6 +29,8 @@
 					<td>Total de compra</td>
 					<td>Ticket</td>
 					<td>Reporte</td>
+					<td>Editar</td>
+					<td>Eliminar</td>
 				</tr>
 		<?php while($ver=mysqli_fetch_row($result)): ?>
 				<tr>
@@ -58,6 +60,16 @@
 							Reporte <span class="glyphicon glyphicon-file"></span>
 						</a>	
 					</td>
+					<td>
+						<button class="btn btn-warning btn-sm" onclick="editarVenta('<?php echo $ver[0] ?>')">
+							<span class="glyphicon glyphicon-edit"></span> Editar
+						</button>
+					</td>
+					<td>
+						<button class="btn btn-danger btn-sm" onclick="eliminarVenta('<?php echo $ver[0] ?>')">
+							<span class="glyphicon glyphicon-trash"></span> Eliminar
+						</button>
+					</td>
 				</tr>
 		<?php endwhile; ?>
 			</table>
@@ -65,3 +77,44 @@
 	</div>
 	<div class="col-sm-1"></div>
 </div>
+
+<script type="text/javascript">
+function editarVenta(idVenta) {
+	// Cargar los datos de la venta en el formulario de ventas
+	$.ajax({
+		type: "POST",
+		data: "idventa=" + idVenta,
+		url: "../procesos/ventas/cargarVentaParaEditar.php",
+		success: function(r) {
+			if(r == 1) {
+				// Cambiar a la pestaña de "Vender producto"
+				$('#ventasTab').click();
+				alertify.success("Venta cargada para editar");
+			} else {
+				alertify.error("Error al cargar la venta");
+			}
+		}
+	});
+}
+
+function eliminarVenta(idVenta) {
+	alertify.confirm('¿Está seguro de eliminar esta venta? Esta acción no se puede deshacer.', function(){ 
+		$.ajax({
+			type: "POST",
+			data: "idventa=" + idVenta,
+			url: "../procesos/ventas/eliminarVenta.php",
+			success: function(r) {
+				if(r == 1) {
+					// Recargar la tabla de ventas
+					$('#tablaVentasLoad').load("ventas/ventasyReportes.php");
+					alertify.success("Venta eliminada correctamente");
+				} else {
+					alertify.error("Error al eliminar la venta");
+				}
+			}
+		});
+	}, function(){ 
+		alertify.message('Operación cancelada');
+	});
+}
+</script>

@@ -39,9 +39,13 @@ $conexion=$c->conexion();
 			</select>
 			<label>Descripcion</label>
 			<textarea readonly="" id="descripcionV" name="descripcionV" class="form-control input-sm"></textarea>
-			<label>Cantidad</label>
-			<input readonly="" type="text" class="form-control input-sm" id="cantidadV" name="cantidadV">
-			<label>Precio</label>
+			<label>Cantidad Disponible</label>
+			<input readonly="" type="text" class="form-control input-sm" id="cantidadDisponible" name="cantidadDisponible">
+			<label>Cantidad a Vender</label>
+			<input type="number" class="form-control input-sm" id="cantidadV" name="cantidadV" min="1" value="1">
+			<label>Precio Unitario</label>
+			<input readonly="" type="text" class="form-control input-sm" id="precioUnitario" name="precioUnitario">
+			<label>Precio Total</label>
 			<input readonly="" type="text" class="form-control input-sm" id="precioV" name="precioV">
 			<p></p>
 			<span class="btn btn-primary" id="btnAgregaVenta">Agregar</span>
@@ -70,12 +74,20 @@ $conexion=$c->conexion();
 					dato=jQuery.parseJSON(r);
 
 					$('#descripcionV').val(dato['descripcion']);
-					$('#cantidadV').val(dato['cantidad']);
-					$('#precioV').val(dato['precio']);
+					$('#cantidadDisponible').val(dato['cantidad']);
+					$('#precioUnitario').val(dato['precio']);
+					
+					// Calcular precio total inicial
+					calcularPrecioTotal();
 
-					$('#imgProducto').prepend('<img class="img-thumbnail" id="imgp" src="' + dato['ruta'] + '" />');
+					$('#imgProducto').html('<img class="img-thumbnail" id="imgp" src="' + dato['ruta'] + '" />');
 				}
 			});
+		});
+
+		// Calcular precio total cuando cambie la cantidad a vender
+		$('#cantidadV').on('input', function(){
+			calcularPrecioTotal();
 		});
 
 		$('#btnAgregaVenta').click(function(){
@@ -86,6 +98,20 @@ $conexion=$c->conexion();
 				return false;
 			}
 
+			// Validar que la cantidad a vender no sea mayor que la disponible
+			var cantidadDisponible = parseInt($('#cantidadDisponible').val());
+			var cantidadVender = parseInt($('#cantidadV').val());
+
+			if(cantidadVender > cantidadDisponible){
+				alertify.alert("La cantidad a vender no puede ser mayor que la cantidad disponible!");
+				return false;
+			}
+
+			if(cantidadVender <= 0){
+				alertify.alert("La cantidad a vender debe ser mayor que 0!");
+				return false;
+			}
+
 			datos=$('#frmVentasProductos').serialize();
 			$.ajax({
 				type:"POST",
@@ -93,6 +119,9 @@ $conexion=$c->conexion();
 				url:"../procesos/ventas/agregaProductoTemp.php",
 				success:function(r){
 					$('#tablaVentasTempLoad').load("ventas/tablaVentasTemp.php");
+					// Limpiar campos después de agregar
+					$('#cantidadV').val(1);
+					calcularPrecioTotal();
 				}
 			});
 		});
@@ -108,6 +137,14 @@ $conexion=$c->conexion();
 	});
 
 	});
+
+	// Función para calcular el precio total
+	function calcularPrecioTotal(){
+		var precioUnitario = parseFloat($('#precioUnitario').val()) || 0;
+		var cantidad = parseInt($('#cantidadV').val()) || 1;
+		var precioTotal = precioUnitario * cantidad;
+		$('#precioV').val(precioTotal.toFixed(2));
+	}
 </script>
 
 <script type="text/javascript">
@@ -130,6 +167,7 @@ $conexion=$c->conexion();
 				if(r > 0){
 					$('#tablaVentasTempLoad').load("ventas/tablaVentasTemp.php");
 					$('#frmVentasProductos')[0].reset();
+					$('#imgProducto').empty();
 					alertify.alert("Venta creada con exito, consulte la informacion de esta en ventas hechas :D");
 				}else if(r==0){
 					alertify.alert("No hay lista de venta!!");

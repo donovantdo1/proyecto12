@@ -4,21 +4,24 @@
 
 	$objv= new ventas();
 
-
 	$c=new conectar();
 	$conexion= $c->conexion();	
-	$idventa=$_GET['idventa'];
+	
+	if(!isset($idventa)) {
+		$idventa=$_GET['idventa'];
+	}
 
  $sql="SELECT ve.id_venta,
 		ve.fechaCompra,
 		ve.id_cliente,
 		art.nombre,
-        art.precio,
-        art.descripcion
+        ve.precio,
+        art.descripcion,
+        ve.cantidad
 	from ventas  as ve 
 	inner join articulos as art
 	on ve.id_producto=art.id_producto
-	and ve.id_venta='$idventa'";
+	where ve.id_venta='$idventa'";
 
 $result=mysqli_query($conexion,$sql);
 
@@ -33,7 +36,7 @@ $result=mysqli_query($conexion,$sql);
  <!DOCTYPE html>
  <html>
  <head>
- 	<title>Reporte de venta</title>
+ 	<title>Ticket de venta</title>
  	<style type="text/css">
 		
 @page {
@@ -55,44 +58,41 @@ $result=mysqli_query($conexion,$sql);
  			Folio: <?php echo $folio ?>
  		</p>
  		<p>
- 			cliente: <?php echo $objv->nombreCliente($idcliente); ?>
+ 			Cliente: <?php echo $objv->nombreCliente($idcliente); ?>
  		</p>
  		
  		<table style="border-collapse: collapse;" border="1">
  			<tr>
  				<td>Nombre</td>
- 				<td>Precio</td>
+ 				<td>P.Unit</td>
+ 				<td>Cant.</td>
+ 				<td>Subtotal</td>
  			</tr>
  			<?php 
- 				$sql="SELECT ve.id_venta,
-							ve.fechaCompra,
-							ve.id_cliente,
-							art.nombre,
-					        art.precio,
-					        art.descripcion
-						from ventas  as ve 
-						inner join articulos as art
-						on ve.id_producto=art.id_producto
-						and ve.id_venta='$idventa'";
-
 				$result=mysqli_query($conexion,$sql);
 				$total=0;
 				while($mostrar=mysqli_fetch_row($result)){
+					// CORREGIDO: Calcular precio unitario
+					$precioTotal = $mostrar[4];
+					$cantidad = $mostrar[6];
+					$precioUnitario = $precioTotal / $cantidad;
  			 ?>
  			<tr>
  				<td><?php echo $mostrar[3]; ?></td>
- 				<td><?php echo $mostrar[4] ?></td>
+ 				<td>$<?php echo number_format($precioUnitario, 2) ?></td>
+ 				<td><?php echo $cantidad ?></td>
+ 				<td>$<?php echo number_format($precioTotal, 2) ?></td>
  			</tr>
  			<?php
- 				$total=$total + $mostrar[4];
+ 				$total = $total + $precioTotal;
  				} 
  			 ?>
  			 <tr>
- 			 	<td>Total: <?php echo "$".$total ?></td>
+ 			 	<td colspan="3"><strong>Total:</strong></td>
+ 			 	<td><strong>$<?php echo number_format($total, 2) ?></strong></td>
  			 </tr>
  		</table>
 
  		
  </body>
  </html>
- 

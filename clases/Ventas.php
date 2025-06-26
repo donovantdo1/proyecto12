@@ -48,18 +48,27 @@ class ventas{
 			$d=explode("||", $datos[$i]);
 
 			$sql="INSERT into ventas (id_venta,
-										id_cliente,
-										id_producto,
-										id_usuario,
-										precio,
-										fechaCompra)
-							values ('$idventa',
-									'$d[5]',
-									'$d[0]',
-									'$idusuario',
-									'$d[3]',
-									'$fecha')";
+                          id_cliente,
+                          id_producto,
+                          id_usuario,
+                          precio,
+                          cantidad,
+                          fechaCompra)
+                values ('$idventa',
+                        '$d[5]',
+                        '$d[0]',
+                        '$idusuario',
+                        '$d[3]',
+                        '$d[6]',
+                        '$fecha')";
 			$r=$r + $result=mysqli_query($conexion,$sql);
+
+			if($result){
+    // NUEVO: Reducir la cantidad del artículo en inventario
+    $sqlUpdate="UPDATE articulos SET cantidad = cantidad - '$d[6]' WHERE id_producto = '$d[0]'";
+    mysqli_query($conexion,$sqlUpdate);
+    $r++;
+	}
 		}
 
 		return $r;
@@ -69,10 +78,17 @@ class ventas{
 		$c= new conectar();
 		$conexion=$c->conexion();
 
-		$sql="SELECT id_venta from ventas group by id_venta desc";
+		// CAMBIO AQUÍ: Corregir la consulta SQL
+		$sql="SELECT id_venta from ventas ORDER BY id_venta DESC LIMIT 1";
 
 		$resul=mysqli_query($conexion,$sql);
-		$id=mysqli_fetch_row($resul)[0];
+		
+		// CAMBIO AQUÍ: Verificar si hay resultados antes de acceder
+		if(mysqli_num_rows($resul) > 0){
+			$id=mysqli_fetch_row($resul)[0];
+		} else {
+			$id = 0;
+		}
 
 		if($id=="" or $id==null or $id==0){
 			return 1;
@@ -80,6 +96,7 @@ class ventas{
 			return $id + 1;
 		}
 	}
+	
 	public function nombreCliente($idCliente){
 		$c= new conectar();
 		$conexion=$c->conexion();
@@ -111,6 +128,30 @@ class ventas{
 
 		return $total;
 	}
+
+	// Agregar este método a la clase ventas
+public function eliminarVenta($idventa){
+    $c = new conectar();
+    $conexion = $c->conexion();
+    
+    // Primero restaurar inventario
+    $sql = "SELECT id_producto, cantidad FROM ventas WHERE id_venta = '$idventa'";
+    $result = mysqli_query($conexion, $sql);
+    
+    while($ver = mysqli_fetch_row($result)) {
+        $idproducto = $ver[0];
+        $cantidad = $ver[1];
+        
+        $sqlUpdate = "UPDATE articulos SET cantidad = cantidad + '$cantidad' WHERE id_producto = '$idproducto'";
+        mysqli_query($conexion, $sqlUpdate);
+    }
+    
+    // Eliminar venta
+    $sqlDelete = "DELETE FROM ventas WHERE id_venta = '$idventa'";
+    return mysqli_query($conexion, $sqlDelete);
 }
+}
+
+
 
 ?>

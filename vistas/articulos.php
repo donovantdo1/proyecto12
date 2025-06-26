@@ -51,11 +51,9 @@ if(isset($_SESSION['usuario'])){
 			</div>
 		</div>
 
-		<!-- Button trigger modal -->
-		
 		<!-- Modal -->
 		<div class="modal fade" id="abremodalUpdateArticulo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-			<div class="modal-dialog modal-sm" role="document">
+			<div class="modal-dialog" role="document">
 				<div class="modal-content">
 					<div class="modal-header">
 						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -80,16 +78,36 @@ if(isset($_SESSION['usuario'])){
 							<input type="text" class="form-control input-sm" id="nombreU" name="nombreU">
 							<label>Descripcion</label>
 							<input type="text" class="form-control input-sm" id="descripcionU" name="descripcionU">
-							<label>Cantidad</label>
-							<input type="text" class="form-control input-sm" id="cantidadU" name="cantidadU">
+							
+							<label>Cantidad Actual</label>
+							<input type="text" readonly class="form-control input-sm" id="cantidadActualU">
+							
+							<label>Ajustar Cantidad</label>
+							<div class="row">
+								<div class="col-sm-4">
+									<input type="number" class="form-control input-sm" id="cantidadAjuste" min="1" value="1" placeholder="Cantidad">
+								</div>
+								<div class="col-sm-4">
+									<button type="button" class="btn btn-success btn-sm" id="btnAumentar">
+										<span class="glyphicon glyphicon-plus"></span> Aumentar
+									</button>
+								</div>
+								<div class="col-sm-4">
+									<button type="button" class="btn btn-warning btn-sm" id="btnDisminuir">
+										<span class="glyphicon glyphicon-minus"></span> Disminuir
+									</button>
+								</div>
+							</div>
+							<br>
+							
 							<label>Precio</label>
 							<input type="text" class="form-control input-sm" id="precioU" name="precioU">
 							
+							<input type="hidden" id="cantidadU" name="cantidadU">
 						</form>
 					</div>
 					<div class="modal-footer">
 						<button id="btnActualizaarticulo" type="button" class="btn btn-warning" data-dismiss="modal">Actualizar</button>
-
 					</div>
 				</div>
 			</div>
@@ -111,6 +129,7 @@ if(isset($_SESSION['usuario'])){
 					$('#categoriaSelectU').val(dato['id_categoria']);
 					$('#nombreU').val(dato['nombre']);
 					$('#descripcionU').val(dato['descripcion']);
+					$('#cantidadActualU').val(dato['cantidad']);
 					$('#cantidadU').val(dato['cantidad']);
 					$('#precioU').val(dato['precio']);
 
@@ -141,6 +160,80 @@ if(isset($_SESSION['usuario'])){
 
 	<script type="text/javascript">
 		$(document).ready(function(){
+			
+			// Aumentar cantidad
+			$('#btnAumentar').click(function(){
+				var idproducto = $('#idArticulo').val();
+				var cantidad = $('#cantidadAjuste').val();
+				
+				if(cantidad <= 0){
+					alertify.alert("La cantidad debe ser mayor que 0");
+					return false;
+				}
+				
+				$.ajax({
+					type:"POST",
+					data:"idproducto=" + idproducto + "&cantidad=" + cantidad + "&operacion=aumentar",
+					url:"../procesos/articulos/ajustarCantidad.php",
+					success:function(r){
+						if(r == 1){
+							alertify.success("Cantidad aumentada correctamente");
+							// Actualizar la cantidad mostrada
+							var cantidadActual = parseInt($('#cantidadActualU').val());
+							var nuevaCantidad = cantidadActual + parseInt(cantidad);
+							$('#cantidadActualU').val(nuevaCantidad);
+							$('#cantidadU').val(nuevaCantidad);
+							$('#cantidadAjuste').val(1);
+							
+							// Recargar tabla de artículos
+							$('#tablaArticulosLoad').load("articulos/tablaArticulos.php");
+						} else {
+							alertify.error("Error al aumentar cantidad");
+						}
+					}
+				});
+			});
+			
+			// Disminuir cantidad
+			$('#btnDisminuir').click(function(){
+				var idproducto = $('#idArticulo').val();
+				var cantidad = $('#cantidadAjuste').val();
+				var cantidadActual = parseInt($('#cantidadActualU').val());
+				
+				if(cantidad <= 0){
+					alertify.alert("La cantidad debe ser mayor que 0");
+					return false;
+				}
+				
+				if(cantidad > cantidadActual){
+					alertify.alert("No puedes disminuir más cantidad de la disponible");
+					return false;
+				}
+				
+				$.ajax({
+					type:"POST",
+					data:"idproducto=" + idproducto + "&cantidad=" + cantidad + "&operacion=disminuir",
+					url:"../procesos/articulos/ajustarCantidad.php",
+					success:function(r){
+						if(r == 1){
+							alertify.success("Cantidad disminuida correctamente");
+							// Actualizar la cantidad mostrada
+							var nuevaCantidad = cantidadActual - parseInt(cantidad);
+							$('#cantidadActualU').val(nuevaCantidad);
+							$('#cantidadU').val(nuevaCantidad);
+							$('#cantidadAjuste').val(1);
+							
+							// Recargar tabla de artículos
+							$('#tablaArticulosLoad').load("articulos/tablaArticulos.php");
+						} else if(r == -1) {
+							alertify.error("No se puede disminuir más cantidad de la disponible");
+						} else {
+							alertify.error("Error al disminuir cantidad");
+						}
+					}
+				});
+			});
+
 			$('#btnActualizaarticulo').click(function(){
 
 				datos=$('#frmArticulosU').serialize();
